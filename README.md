@@ -1,36 +1,164 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DeadlineFocus
 
-## Getting Started
+A collaborative task management application for students built with Next.js, Supabase, and TypeScript.
 
-First, run the development server:
+## Features
+
+- **Authentication**: Sign in with Google or Email/Password using Supabase Auth
+- **Classroom Management**: Create classrooms with unique join codes
+- **Collaborative Tasks**: Create and manage tasks that sync across all classroom members
+- **Real-time Updates**: See task completions and progress in real-time
+- **Deadline Enforcement**: 24-hour deletion restriction for tasks near deadlines
+- **Social Proof**: Track which classmates have completed tasks
+- **Push Notifications**: Get notified about approaching deadlines
+- **Responsive Design**: Works on desktop and mobile with dark mode support
+
+## Tech Stack
+
+- **Frontend**: Next.js 16.2.1, React 19, Tailwind CSS v4
+- **Backend**: Supabase (PostgreSQL + Auth + Realtime)
+- **Language**: TypeScript
+- **Notifications**: Web Push API
+
+## Setup Instructions
+
+### 1. Prerequisites
+
+- Node.js 18+ installed
+- A Supabase account (free tier works)
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Set Up Supabase
+
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. In your Supabase project:
+   - Go to Authentication → Providers → Enable Google OAuth (optional)
+   - Copy your Project URL and Anon Key
+
+### 4. Set Up Database
+
+1. In Supabase, go to SQL Editor
+2. Copy the contents of `supabase-schema.sql`
+3. Paste and execute the SQL script
+4. This will create all tables, RLS policies, functions, and triggers
+
+### 5. Configure Environment Variables
+
+1. Copy `.env.local.example` to `.env.local`
+2. Fill in your environment variables:
+
+```bash
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-anon-key
+
+# VAPID Keys for Web Push
+# Generate these with: npx web-push generate-vapid-keys
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PRIVATE_KEY=your-vapid-private-key
+VAPID_EMAIL=mailto:your-email@example.com
+
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 6. Generate VAPID Keys (for Push Notifications)
+
+```bash
+npm install -g web-push
+npx web-push generate-vapid-keys
+```
+
+Copy the generated public and private keys to your `.env.local` file.
+
+### 7. Run the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+├── app/
+│   ├── auth/              # Authentication pages and actions
+│   ├── api/               # API routes
+│   │   ├── classrooms/    # Classroom management
+│   │   ├── tasks/         # Task management
+│   │   ├── push/          # Push notifications
+│   │   └── cron/          # Scheduled tasks
+│   ├── classroom/[id]/    # Classroom detail page
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Home/Dashboard
+├── components/
+│   ├── auth/              # Authentication components
+│   ├── classroom/         # Classroom components
+│   ├── dashboard/         # Dashboard components
+│   ├── notification/      # Push notification components
+│   └── task/              # Task components
+├── hooks/
+│   ├── useRealtimeTasks.ts
+│   └── useRealtimeClassroom.ts
+├── lib/
+│   ├── supabase/          # Supabase client utilities
+│   ├── utils/
+│   │   └── deadline.ts    # Deadline utilities
+│   └── notifications/
+│       └── trigger.ts     # Notification triggers
+├── public/
+│   └── sw.js              # Service worker for push notifications
+├── middleware.ts          # Next.js middleware
+├── supabase-schema.sql   # Database schema
+└── package.json
+```
 
-## Learn More
+## Key Features Implementation
 
-To learn more about Next.js, take a look at the following resources:
+### 24-Hour Deadline Enforcement
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The deadline restriction is enforced at three levels:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Database Level**: RLS policy prevents deletion within 24 hours
+2. **API Level**: DELETE endpoint validates before attempting deletion
+3. **Client Level**: Delete button is disabled when deadline < 24 hours
 
-## Deploy on Vercel
+### Real-time Synchronization
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Using Supabase Realtime, tasks and completions sync instantly across all connected clients:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `useRealtimeTasks` hook for task updates
+- `useRealtimeClassroom` hook for member changes
+- Automatic re-rendering on data changes
+
+### Push Notifications
+
+- Service worker handles incoming notifications
+- Users can subscribe/unsubscribe to push notifications
+- Scheduled cron jobs send deadline warnings
+
+## Development
+
+```bash
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Run linter
+npm run lint
+```
+
+## License
+
+MIT
