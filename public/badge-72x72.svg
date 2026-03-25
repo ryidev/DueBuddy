@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72" fill="none">
+  <rect width="72" height="72" fill="#7c3aed" rx="16"/>
+  <circle cx="56" cy="56" r="12" fill="#10b981"/>
+</svg>
+echo "Icon files created"

@@ -1,0 +1,26 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { getIcon } from '@/components/ui/Icons'
+
+interface PushState {
+  subscription: PushSubscription | null
+  permission: string
+  error: string | null
+  loading: boolean
+}
+
+export function PushSubscription() {
+  const [state, setState] = useState<PushState>({
+    subscription: null,
+    permission: 'default',
+    error: null,
+    loading: true,
+  })
+
+  useEffect(() => {
+    initNotifications()
+  }, [])
+
+  const initNotifications = async () => {
+    try {

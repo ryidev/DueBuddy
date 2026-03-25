@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { triggerWelcomeDeadlineNotifications } from '@/lib/notifications/trigger'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -81,6 +82,13 @@ export async function POST(request: Request) {
     }
     console.error('[join] insert error:', insertError)
     return NextResponse.json({ error: insertError.message }, { status: 400 })
+  }
+
+  // Trigger welcome notifications for any urgent tasks
+  try {
+    await triggerWelcomeDeadlineNotifications(user.id, classroom.id)
+  } catch (err) {
+    console.error('[join] notification error:', err)
   }
 
   return NextResponse.json({ success: true, classroom_id: classroom.id })

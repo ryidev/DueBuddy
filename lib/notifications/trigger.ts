@@ -127,3 +127,55 @@ export async function triggerTaskCompletionNotifications(taskId: string) {
     )
   )
 }
+
+export async function triggerWelcomeDeadlineNotifications(profileId: string, classroomId: string) {
+  const supabase = await createClient()
+
+  // Get tasks with deadlines approaching (< 24h) for this specific classroom
+  const { data: tasks } = await supabase
+    .from('tasks')
+    .select('id, title, deadline')
+    .eq('classroom_id', classroomId)
+    .gte('deadline', new Date().toISOString())
+    .lte('deadline', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
+
+  if (!tasks || tasks.length === 0) return
+
+  // Get push subscriptions for the new user only
+  const { data: subscriptions } = await supabase
+    .from('push_subscriptions')
+    .select('*')
+    .eq('profile_id', profileId)
+
+  if (!subscriptions || subscriptions.length === 0) return
+
+  // Fire a welcome notification for each urgent task they just inherited
+  for (const task of tasks) {
+    const results = await Promise.allSettled(
+      subscriptions.map(sub =>
+        webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: sub.keys as { p256dh: string; auth: string },
+          },
+          JSON.stringify({
+            title: 'Urgent: New Class Task!',
+            message: `Welcome! Note that "${task.title}" is due in less than 24 hours.`,
+          })
+        )
+      )
+    )
+
+    // Clean up failed subscriptions
+    const failedSubscriptions = subscriptions.filter((_, i) =>
+      results[i].status === 'rejected'
+    )
+
+    if (failedSubscriptions.length > 0) {
+      await supabase
+        .from('push_subscriptions')
+        .delete()
+        .in('endpoint', failedSubscriptions.map(s => s.endpoint))
+    }
+  }
+}

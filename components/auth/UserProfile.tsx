@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
+import { PushSubscription } from '@/components/notification/PushSubscription'
 
 interface Profile {
   full_name: string | null
@@ -221,6 +222,17 @@ export function UserProfile() {
                   />
                 </div>
               )}
+
+              {/* Notifications */}
+              <div className="pt-2">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-black/5 border border-white/5 dark:bg-white/5">
+                  <div>
+                    <h3 className="text-sm font-semibold text-text-primary">Push Notifications</h3>
+                    <p className="text-xs text-text-muted mt-0.5">Alerts for task deadlines</p>
+                  </div>
+                  <PushSubscription />
+                </div>
+              </div>
 
               {/* Message */}
               {saveMsg && (
