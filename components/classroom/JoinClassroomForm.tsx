@@ -9,11 +9,16 @@ export function JoinClassroomForm() {
   const [loading, setLoading] = useState(false)
   const [code, setCode] = useState('')
 
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!code.trim()) return
 
     setLoading(true)
+    setError(null)
+    setSuccess(false)
 
     try {
       const response = await fetch('/api/classrooms/join', {
@@ -22,17 +27,23 @@ export function JoinClassroomForm() {
         body: JSON.stringify({ code: code.trim().toUpperCase() }),
       })
 
+      const data = await response.json()
+
       if (response.ok) {
         setCode('')
-        router.refresh()
-        alert('Successfully joined classroom!')
+        setSuccess(true)
+        if (data.classroom_id) {
+          // Navigate directly to the classroom (works for new join AND already-member)
+          router.push(`/classroom/${data.classroom_id}`)
+        } else {
+          router.refresh()
+        }
       } else {
-        const data = await response.json()
-        alert(data.error || 'Failed to join classroom')
+        setError(data.error || 'Failed to join classroom')
       }
-    } catch (error) {
-      console.error('Error joining classroom:', error)
-      alert('Failed to join classroom')
+    } catch (err) {
+      console.error('Error joining classroom:', err)
+      setError('Failed to join classroom. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -74,6 +85,20 @@ export function JoinClassroomForm() {
           </>
         )}
       </button>
+
+      {/* Inline feedback */}
+      {error && (
+        <div className="text-sm px-3 py-2.5 rounded-xl font-medium"
+          style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }}>
+          ⚠️ {error}
+        </div>
+      )}
+      {success && (
+        <div className="text-sm px-3 py-2.5 rounded-xl font-medium"
+          style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}>
+          ✅ Redirecting to classroom...
+        </div>
+      )}
     </form>
   )
 }

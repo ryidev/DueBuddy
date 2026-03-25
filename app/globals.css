@@ -152,14 +152,18 @@
 
   /* Header glass */
   .glass-header {
-    background: rgba(var(--bg-primary), 0.7);
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
-    border-bottom: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.4);
+    border-bottom: 1px solid rgba(124, 58, 237, 0.08);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    position: sticky;
+    top: 0;
+    z-index: 50;
   }
 
   .dark .glass-header {
-    background: rgba(8, 8, 8, 0.75);
+    background: rgba(8, 8, 8, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   /* ========================
@@ -368,7 +372,7 @@
     width: 60%;
     height: 60%;
     background: radial-gradient(ellipse at center, var(--accent-purple) 0%, transparent 70%);
-    opacity: 0.12;
+    opacity: 0.35;
     filter: blur(80px);
     animation: float-blob-1 12s ease-in-out infinite;
   }
@@ -381,17 +385,17 @@
     width: 55%;
     height: 55%;
     background: radial-gradient(ellipse at center, var(--accent-indigo) 0%, transparent 70%);
-    opacity: 0.1;
+    opacity: 0.3;
     filter: blur(100px);
     animation: float-blob-2 15s ease-in-out infinite;
   }
 
   .dark .bg-animated::before {
-    opacity: 0.22;
+    opacity: 0.45;
   }
 
   .dark .bg-animated::after {
-    opacity: 0.18;
+    opacity: 0.4;
   }
 
   /* Third accent blob */

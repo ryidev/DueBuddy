@@ -33,7 +33,12 @@ export function ClassroomMembers({ classroomId }: ClassroomMembersProps) {
 
       if (error) throw error
 
-      setMembers(data || [])
+      const formattedMembers = data?.map((m: any) => ({
+        role: m.role,
+        profiles: Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+      })) as Member[]
+
+      setMembers(formattedMembers || [])
     } catch (error) {
       console.error('Error fetching members:', error)
     } finally {
@@ -58,9 +63,9 @@ export function ClassroomMembers({ classroomId }: ClassroomMembersProps) {
           >
             <div className="flex items-center gap-2">
               <div className="avatar-modern text-xs">
-                {member.profiles.full_name?.[0] || member.profiles.email[0].toUpperCase()}
+                {member.profiles?.full_name?.[0] || member.profiles?.email?.[0]?.toUpperCase() || '?'}
               </div>
-              <span>{member.profiles.full_name || member.profiles.email}</span>
+              <span>{member.profiles?.full_name || member.profiles?.email || 'Unknown Member'}</span>
             </div>
             {member.role === 'owner' && (
               <span className="text-xs font-medium bg-accent-blue/10 text-accent-blue px-2 py-1 rounded">

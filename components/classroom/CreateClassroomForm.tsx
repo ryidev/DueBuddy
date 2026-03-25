@@ -21,11 +21,16 @@ export function CreateClassroomForm() {
         body: JSON.stringify({ name: name.trim() }),
       })
 
+      const data = await response.json()
+
       if (response.ok) {
         setName('')
-        router.refresh()
+        if (data.classrooms && data.classrooms.length > 0) {
+          router.push(`/classroom/${data.classrooms[0].id}`)
+        } else {
+          router.refresh()
+        }
       } else {
-        const data = await response.json()
         alert(data.error || 'Failed to create classroom')
       }
     } catch (error) {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 
 interface Profile {
@@ -135,27 +136,18 @@ export function UserProfile() {
           <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-bg-primary" />
         </button>
 
-        {/* Name + email — only desktop, also clickable */}
-        <button onClick={openModal} className="hidden sm:block text-left group">
+        {/* Name + email — always visible now */}
+        <button onClick={openModal} className="text-left group">
           <p className="text-sm font-semibold text-text-primary leading-tight group-hover:text-gradient transition-colors">
             {profile?.full_name || 'Set your name'}
           </p>
           <p className="text-xs text-text-muted">{profile?.email}</p>
         </button>
-
-        {/* Sign Out */}
-        <button
-          onClick={handleSignOut}
-          className="btn-modern btn-secondary-modern py-2 px-3 text-sm flex items-center gap-2"
-          title="Sign out"
-        >
-          <span>🚪</span>
-          <span className="hidden sm:inline">Sign out</span>
-        </button>
       </div>
 
+
       {/* Edit Profile Modal */}
-      {showModal && (
+      {showModal && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 z-[999] flex items-center justify-center px-4"
           style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
@@ -268,7 +260,8 @@ export function UserProfile() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style>{`

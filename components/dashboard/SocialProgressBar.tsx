@@ -16,17 +16,7 @@ export function SocialProgressBar({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-foreground font-medium">
-          {completedCount}/{totalCount} completed
-        </span>
-        {completedCount > 0 && completedBy.length > 0 && (
-          <span className="text-xs text-muted-foreground">
-            by {completedBy.slice(0, 3).map(c => c.name).join(', ')}
-            {completedBy.length > 3 && '...'}
-          </span>
-        )}
-      </div>
+      
 
       {/* Progress Bar */}
       <div className="relative h-3 bg-foreground/10 rounded-full overflow-hidden">

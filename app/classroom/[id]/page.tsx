@@ -4,6 +4,7 @@ import { TaskForm } from '@/components/task/TaskForm'
 import { TaskList } from '@/components/dashboard/TaskList'
 import { ClassroomMembers } from '@/components/classroom/ClassroomMembers'
 import { UserProfile } from '@/components/auth/UserProfile'
+import { LeaveClassroomButton } from '@/components/classroom/LeaveClassroomButton'
 
 async function getClassroomData(classroomId: string) {
   const supabase = await createClient()
@@ -41,6 +42,21 @@ async function getClassroomData(classroomId: string) {
     .select('*', { count: 'exact', head: true })
     .eq('classroom_id', classroomId)
 
+  // Get total tasks count
+  const { count: totalTasks } = await supabase
+    .from('tasks')
+    .select('*', { count: 'exact', head: true })
+    .eq('classroom_id', classroomId)
+
+  // Get completed tasks count for this user in this classroom
+  const { count: completedTasks } = await supabase
+    .from('task_completions')
+    .select('task_id', { count: 'exact', head: true })
+    .eq('profile_id', user.id)
+    .in('task_id', (
+      await supabase.from('tasks').select('id').eq('classroom_id', classroomId)
+    ).data?.map(t => t.id) || [])
+
   // classrooms from a relational join is typed as array — extract the single object
   const classroom = Array.isArray(membership.classrooms)
     ? (membership.classrooms as any[])[0]
@@ -51,6 +67,8 @@ async function getClassroomData(classroomId: string) {
     role: membership.role,
     memberCount: count || 0,
     userId: user.id,
+    totalTasks: totalTasks || 0,
+    completedTasks: completedTasks || 0,
   }
 }
 
@@ -64,42 +82,48 @@ export default async function ClassroomPage({
 
   return (
     <>
-      <div className="animated-bg">
-        <div className="animated-bg::before"></div>
+      <div className="bg-animated">
+        <div className="bg-animated::before"></div>
       </div>
 
       <div className="min-h-screen relative">
         {/* Header */}
-        <header className="sticky top-0 z-50 glass-card border-b border-foreground/10">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <a
-                  href="/"
-                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7m7-7l-7 7m0 0l-7-7m7 7l-7 7m0-0l-7-7m-7 7l7 7" />
-                  </svg>
-                  Back to Classrooms
-                </a>
-                <div className="h-8 w-px bg-foreground/20"></div>
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">
+        <header className="sticky top-0 z-50 glass-header backdrop-blur-2xl bg-black/50 border-b border-black/10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 relative">
+            <div className="flex items-center justify-between gap-4 w-full">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
+               
+                <div className="hidden sm:block h-8 w-px bg-foreground/20 "></div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 sm:mt-0">
+                  <h1 className="text-2xl font-bold text-foreground pr-2">
                     {data.classroom.name}
                   </h1>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm text-muted-foreground">
-                      Code:
-                    </span>
-                    <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-primary to-secondary text-white text-sm font-mono font-bold">
-                      {data.classroom.unique_code}
-                    </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1 sm:mt-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        Code:
+                      </span>
+                      <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-primary to-secondary text-white text-sm font-mono font-bold">
+                        {data.classroom.unique_code}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        Tugas:
+                      </span>
+                      <span className="text-sm font-semibold px-3 py-1 rounded-full bg-accent-purple/10 text-accent-purple border border-accent-purple/20">
+                        {data.completedTasks} / {data.totalTasks} Selesai
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <UserProfile />
+              <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+                <LeaveClassroomButton classroomId={resolvedParams.id} role={data.role} />
+                <div className="hidden sm:block">
+                  <UserProfile />
+                </div>
+              </div>
             </div>
           </div>
         </header>

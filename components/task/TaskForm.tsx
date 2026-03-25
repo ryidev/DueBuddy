@@ -38,8 +38,8 @@ export function TaskForm({ classroomId, onSubmit }: TaskFormProps) {
         setTitle('')
         setDescription('')
         setDeadline('')
-        router.refresh()
         onSubmit?.()
+        window.location.reload()
       } else {
         const data = await response.json()
         alert(data.error || 'Failed to create task')

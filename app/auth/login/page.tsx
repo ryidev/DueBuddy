@@ -15,7 +15,7 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-accent-purple to-accent-pink flex items-center justify-center text-white font-bold text-4xl shadow-elevated">
-              DFf
+              Ryi
             </div>
             <h1 className="text-4xl font-bold text-gradient bg-clip-text text-transparent mt-6">
               Welcome Back
