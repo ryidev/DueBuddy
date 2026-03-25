@@ -1,12 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import webpush from 'web-push'
 
-// Configure VAPID
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL || 'mailto:deadlinefocus@example.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
-  process.env.VAPID_PRIVATE_KEY || ''
-)
+// Configure VAPID safely
+const vapidEmail = process.env.VAPID_EMAIL || 'mailto:deadlinefocus@example.com'
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
+
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey)
+} else {
+  console.warn('VAPID keys missing. Push notifications will not be active.')
+}
 
 export async function triggerDeadlineNotifications() {
   const supabase = await createClient()
