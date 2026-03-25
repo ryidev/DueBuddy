@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 
@@ -35,7 +36,9 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <LoginForm />
+            <Suspense fallback={<div className="text-center text-zinc-500 py-4">Loading form...</div>}>
+              <LoginForm />
+            </Suspense>
           </div>
 
           {/* Theme Toggle */}

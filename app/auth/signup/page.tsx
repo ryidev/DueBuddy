@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { SignupForm } from '@/components/auth/SignupForm'
 
 export default function SignupPage() {
@@ -24,7 +25,9 @@ export default function SignupPage() {
 
           {/* Signup Form */}
           <div className="card-modern p-8">
-            <SignupForm />
+            <Suspense fallback={<div className="text-center text-zinc-500 py-4">Loading form...</div>}>
+              <SignupForm />
+            </Suspense>
           </div>
 
           {/* Footer */}
