@@ -96,8 +96,8 @@
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
     box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -113,8 +113,8 @@
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
     box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
@@ -146,16 +146,16 @@
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
     box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   /* Header glass */
   .glass-header {
     background: rgba(255, 255, 255, 0.4);
     border-bottom: 1px solid rgba(124, 58, 237, 0.08);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     position: sticky;
     top: 0;
     z-index: 50;
@@ -174,8 +174,8 @@
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
     box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -373,7 +373,6 @@
     height: 60%;
     background: radial-gradient(ellipse at center, var(--accent-purple) 0%, transparent 70%);
     opacity: 0.35;
-    filter: blur(80px);
     animation: float-blob-1 12s ease-in-out infinite;
   }
 
@@ -386,7 +385,6 @@
     height: 55%;
     background: radial-gradient(ellipse at center, var(--accent-indigo) 0%, transparent 70%);
     opacity: 0.3;
-    filter: blur(100px);
     animation: float-blob-2 15s ease-in-out infinite;
   }
 
@@ -408,7 +406,6 @@
     height: 40%;
     background: radial-gradient(ellipse at center, #6d28d9 0%, transparent 70%);
     opacity: 0.06;
-    filter: blur(90px);
     animation: float-blob-3 18s ease-in-out infinite;
     pointer-events: none;
     z-index: -1;
@@ -447,16 +444,16 @@
   }
 
   .glass-effect {
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   /* Legacy compat */
   .glass-card {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     box-shadow: var(--glass-shadow);
     transition: all 0.3s ease;
   }
