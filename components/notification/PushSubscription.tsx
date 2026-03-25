@@ -1,276 +1,198 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getIcon } from '@/components/ui/Icons'
 
-
-interface PushState {
-  subscription: PushSubscription | null
-  permission: string
-  error: string | null
-  loading: boolean
+// Safely convert base64 VAPID key to Uint8Array (required by PushManager)
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = atob(base64)
+  const output = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; ++i) {
+    output[i] = rawData.charCodeAt(i)
+  }
+  return output
 }
 
+function isPushSupported(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window &&
+    'Notification' in window
+  )
+}
+
+type Status = 'loading' | 'unsupported' | 'denied' | 'subscribed' | 'unsubscribed' | 'error'
+
 export function PushSubscription() {
-  const [state, setState] = useState<PushState>({
-    subscription: null,
-    permission: 'default',
-    error: null,
-    loading: true,
-  })
+  const [status, setStatus] = useState<Status>('loading')
+  const [errorMsg, setErrorMsg] = useState('')
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    initNotifications()
+    if (!isPushSupported()) {
+      setStatus('unsupported')
+      return
+    }
+    checkExistingSubscription()
   }, [])
 
-  const initNotifications = async () => {
+  const checkExistingSubscription = async () => {
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        setState(prev => ({ ...prev, loading: false }))
+      const reg = await navigator.serviceWorker.getRegistration()
+      if (!reg) {
+        setStatus('unsubscribed')
         return
       }
-
-      const currentPermission = Notification.permission
-      const registration = await navigator.serviceWorker.getRegistration()
-      const subscription = registration
-        ? await registration.pushManager.getSubscription()
-        : null
-
-      setState({
-        subscription: subscription,
-        permission: currentPermission,
-        error: null,
-        loading: false,
-      })
-    } catch (err) {
-      console.error('Error initializing notifications:', err)
-      setState(prev => ({
-        ...prev,
-        error: err instanceof Error ? err.message : 'Gagal menginisialisasi notifikasi',
-        loading: false,
-      }))
+      const sub = await reg.pushManager.getSubscription()
+      setStatus(sub ? 'subscribed' : 'unsubscribed')
+    } catch {
+      setStatus('unsubscribed')
     }
   }
 
   const subscribe = async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }))
+    if (!isPushSupported()) return
 
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    if (!vapidKey) {
+      setStatus('error')
+      setErrorMsg('VAPID public key belum dikonfigurasi.')
+      return
+    }
+
+    setBusy(true)
     try {
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-
-      if (!vapidPublicKey) {
-        throw new Error('VAPID key tidak dikonfigurasi')
+      // 1. Request browser permission
+      const permission = await Notification.requestPermission()
+      if (permission === 'denied') {
+        setStatus('denied')
+        setBusy(false)
+        return
+      }
+      if (permission !== 'granted') {
+        setBusy(false)
+        return
       }
 
-      console.log('VAPID Key:', vapidPublicKey?.slice(0, 30) + '...')
-
-      let registration = await navigator.serviceWorker.getRegistration('/sw.js')
-
-      if (!registration) {
-        console.log('Registering service worker...')
-        registration = await navigator.serviceWorker.register('/sw.js', {
-          scope: '/'
-        })
-
-        await navigator.serviceWorker.ready
-        console.log('Service worker registered')
+      // 2. Register SW if not yet registered
+      if (!navigator.serviceWorker.controller) {
+        await navigator.serviceWorker.register('/sw.js', { scope: '/' })
       }
 
-      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey)
+      // 3. Wait until SW is truly active
+      const reg = await navigator.serviceWorker.ready
 
-      console.log('Attempting to subscribe...')
-
-      const subscription = await registration.pushManager.subscribe({
+      // 4. Subscribe with converted VAPID key
+      const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
       })
 
-      console.log('Subscribed successfully:', subscription.endpoint)
-
-      const response = await fetch('/api/push/subscribe', {
+      // 5. Save subscription to server
+      const keys = sub.toJSON().keys
+      const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          endpoint: subscription.endpoint,
-          keys: subscription.toJSON().keys
-        })
+        body: JSON.stringify({ endpoint: sub.endpoint, keys }),
       })
 
-      if (response.ok) {
-        setState({
-          subscription,
-          permission: 'granted',
-          error: null,
-          loading: false
-        })
-      } else {
-        throw new Error(`Server error: ${response.status}`)
-      }
-    } catch (err) {
-      console.error('Subscription error:', err)
-
-      let errorMessage = 'Gagal subscribe notifikasi'
-      if (err instanceof Error) {
-        errorMessage = err.message
-
-        if (err.name === 'AbortError' || err.message.includes('Registration failed')) {
-          errorMessage = 'Gagal registrasi Push Notification. Browser mungkin tidak mendukungan fitur ini.'
-        }
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`)
       }
 
-      setState({
-        subscription: null,
-        permission: state.permission,
-        error: errorMessage,
-        loading: false
-      })
+      setStatus('subscribed')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setStatus('error')
+      setErrorMsg(msg)
+    } finally {
+      setBusy(false)
     }
   }
 
   const unsubscribe = async () => {
-    setState(prev => ({ ...prev, loading: true }))
-
+    setBusy(true)
     try {
-      if (state.subscription) {
-        await state.subscription.unsubscribe()
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      if (sub) {
+        const endpoint = sub.endpoint
+        await sub.unsubscribe()
+        fetch('/api/push/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint }),
+        }).catch(() => {/* fire and forget */})
       }
-
-      setState({
-        subscription: null,
-        permission: state.permission,
-        error: null,
-        loading: false
-      })
-
-      await fetch('/api/push/unsubscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ endpoint: state.subscription?.endpoint })
-      })
-    } catch (err) {
-      console.error('Unsubscribe error:', err)
-      setState({
-        subscription: null,
-        permission: state.permission,
-        error: 'Gagal unsubscribe notifikasi',
-        loading: false
-      })
+      setStatus('unsubscribed')
+    } catch {
+      setStatus('unsubscribed')
+    } finally {
+      setBusy(false)
     }
   }
 
-  const urlBase64ToUint8Array = (base64String: string) => {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4)
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
+  // --- Renders ---
 
-    const binaryString = window.atob(base64)
-    const bytes = new Uint8Array(binaryString.length)
-
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i)
-    }
-
-    return bytes
-  }
-
-  if (state.loading && !state.subscription) {
+  if (status === 'loading') {
     return (
-      <div className="glass-card p-4 rounded-xl">
-        <div className="flex items-center justify-center gap-3">
-          <div className="spinner-modern"></div>
-          <span className="text-sm text-text-secondary">Loading...</span>
-        </div>
-      </div>
-    )
-  }
-
-  if (state.error) {
-    return (
-      <div className="glass-card p-4 rounded-xl">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl flex-shrink-0">{getIcon('warning')}</span>
-          <div className="flex-1">
-            <h4 className="font-semibold text-text-primary mb-1">
-              Notifikasi Error
-            </h4>
-            <p className="text-sm text-text-secondary">{state.error}</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (state.permission === 'denied') {
-    return (
-      <div className="glass-card p-4 rounded-xl">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl flex-shrink-0">{getIcon('error')}</span>
-          <div className="flex-1">
-            <h4 className="font-semibold text-text-primary mb-1">
-              Izin Notifikasi Ditolak
-            </h4>
-            <p className="text-sm text-text-secondary mb-3">
-              Notifikasi push membutuhkan izin untuk berfungsi.
-            </p>
-            <button
-              onClick={subscribe}
-              className="btn-modern btn-primary-modern w-full py-2 text-sm"
-            >
-              Grant Permission
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="text-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <span className={state.subscription ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}>
-            {getIcon('bell')}
-          </span>
-          <span className="text-text-secondary">
-            {state.subscription ? 'Notifikasi Aktif' : 'Notifikasi Nonaktif'}
-          </span>
-        </div>
-        {state.permission === 'denied' && (
-          <p className="text-xs text-text-muted">
-            Notifikasi diblokir di browser settings Anda.
-          </p>
-        )}
-      </div>
-
-      <button
-        onClick={state.subscription ? unsubscribe : subscribe}
-        disabled={state.loading}
-        className={`btn-modern w-full ${
-          state.subscription
-            ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-800'
-            : 'btn-primary-modern'
-        }`}
-      >
-        {state.loading ? (
-          <span className="flex items-center gap-2">
-            <div className="spinner-modern w-4 h-4 border-2"></div>
-            {state.subscription ? 'Unsubscribing...' : 'Subscribing...'}
-          </span>
-        ) : state.subscription ? (
-          <>
-            <span className="text-xl mr-2">{getIcon('signOut')}</span>
-            <span className="font-semibold">{getIcon('bell')} Nonaktifkan Notifikasi</span>
-          </>
-        ) : (
-          <>
-            <span className="text-xl mr-2">{getIcon('add')}</span>
-            <span className="font-semibold">{getIcon('bell')} Aktifkan Notifikasi</span>
-          </>
-        )}
+      <button disabled className="px-4 py-2 rounded-lg text-sm text-text-muted bg-black/5 dark:bg-white/5">
+        Memuat...
       </button>
+    )
+  }
 
+  if (status === 'unsupported') {
+    return (
+      <span className="text-xs text-text-muted px-3 py-1.5 rounded-lg bg-black/5 dark:bg-white/5">
+        Tidak didukung browser ini
+      </span>
+    )
+  }
 
-    </div>
+  if (status === 'denied') {
+    return (
+      <span className="text-xs text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
+        Izin notifikasi ditolak. Aktifkan di pengaturan browser.
+      </span>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="flex flex-col gap-2">
+        <span className="text-xs text-red-500 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          {errorMsg || 'Gagal mengaktifkan notifikasi'}
+        </span>
+        <button onClick={subscribe} disabled={busy} className="text-xs text-text-muted underline">
+          Coba lagi
+        </button>
+      </div>
+    )
+  }
+
+  if (status === 'subscribed') {
+    return (
+      <button
+        onClick={unsubscribe}
+        disabled={busy}
+        className="px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 transition-colors disabled:opacity-50"
+      >
+        {busy ? 'Menonaktifkan...' : '🔔 Notifikasi Aktif'}
+      </button>
+    )
+  }
+
+  // 'unsubscribed'
+  return (
+    <button
+      onClick={subscribe}
+      disabled={busy}
+      className="px-4 py-2 rounded-lg text-sm font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors disabled:opacity-50"
+    >
+      {busy ? 'Mengaktifkan...' : '🔔 Aktifkan Notifikasi'}
+    </button>
   )
 }
