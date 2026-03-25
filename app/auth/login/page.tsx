@@ -41,11 +41,6 @@ export default function LoginPage() {
             </Suspense>
           </div>
 
-          {/* Theme Toggle */}
-          <div className="text-center mt-6">
-            <ThemeToggle />
-          </div>
-
           {/* Footer */}
           <div className="text-center mt-6 text-sm text-text-muted">
             <p>
